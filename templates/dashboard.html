@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — IaC Security Framework{% endblock %}
+{% block page_title %}Security Dashboard{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle">Overview of all security scan activity</p>{% endblock %}
+
+{% block content %}
+<!-- KPI Summary Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-primary">
+                    <i class="bi bi-search"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ total_scans }}</span>
+                    <span class="kpi-label">Total Scans</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-danger">
+                    <i class="bi bi-exclamation-octagon-fill"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ critical_risk_scans }}</span>
+                    <span class="kpi-label">Critical/High Risk Scans</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-info">
+                    <i class="bi bi-speedometer2"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ avg_pre }}</span>
+                    <span class="kpi-label">Avg Pre-Deploy Score</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-success">
+                    <i class="bi bi-speedometer"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ avg_post }}</span>
+                    <span class="kpi-label">Avg Post-Deploy Score</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-warning">
+                    <i class="bi bi-bug-fill"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ total_findings }}</span>
+                    <span class="kpi-label">Total Findings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-critical">
+                    <i class="bi bi-radioactive"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ critical_findings }}</span>
+                    <span class="kpi-label">Critical Findings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-high">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ high_findings }}</span>
+                    <span class="kpi-label">High Findings</span>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <div class="kpi-card">
+            <div class="kpi-card-body">
+                <div class="kpi-icon kpi-icon-review">
+                    <i class="bi bi-eye-fill"></i>
+                </div>
+                <div class="kpi-content">
+                    <span class="kpi-value">{{ review_required }}</span>
+                    <span class="kpi-label">Review Required</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Charts Row -->
+<div class="row g-3 mb-4">
+    <div class="col-xl-8">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-bar-chart-fill"></i> Pre vs Post Risk Scores</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <canvas id="riskScoreChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-pie-chart-fill"></i> Severity Distribution</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <canvas id="severityChart" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-xl-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-diagram-3-fill"></i> Scanner Distribution</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <canvas id="scannerChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-check2-square"></i> Final Decision Distribution</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <canvas id="decisionChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-xl-4">
+        <div class="dashboard-card">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-tags-fill"></i> Security Categories</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <canvas id="categoryChart" height="280"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Scans Table -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-clock-history"></i> Recent Scans</h5>
+    </div>
+    <div class="dashboard-card-body">
+        {% if summaries %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="recent-scans-table">
+                <thead>
+                    <tr>
+                        <th>Scan ID</th>
+                        <th>Repository</th>
+                        <th>Branch</th>
+                        <th>Timestamp</th>
+                        <th>Pre Score</th>
+                        <th>Post Score</th>
+                        <th>Delta</th>
+                        <th>Critical</th>
+                        <th>Decision</th>
+                        <th>Cleanup</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for scan in summaries %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('scans.scan_details', scan_id=scan.scan_id) }}" class="scan-id-link">
+                                {{ scan.scan_id }}
+                            </a>
+                        </td>
+                        <td>{{ safe_value(scan.repository.name) }}</td>
+                        <td>{{ safe_value(scan.repository.branch) }}</td>
+                        <td>
+                            {% if scan.completed_timestamp and scan.completed_timestamp != 'NOT_AVAILABLE' %}
+                                <span class="text-muted small">{{ scan.completed_timestamp[:19] }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="score-badge score-{{ scan.pre_deployment.risk_band | lower | replace('_', '-') }}">
+                                {{ scan.pre_deployment.risk_score }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if scan.runtime.risk_score is not none %}
+                            <span class="score-badge score-{{ scan.runtime.risk_band | lower | replace('_', '-') }}">
+                                {{ scan.runtime.risk_score }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set delta = safe_value(scan.risk_comparison.score_delta) %}
+                            {% if delta != 'NOT_AVAILABLE' %}
+                                <span class="delta-badge">{{ delta }}</span>
+                            {% else %}
+                                <span class="text-muted">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if scan.pre_deployment.critical_count > 0 %}
+                                <span class="severity-badge severity-critical">{{ scan.pre_deployment.critical_count }}</span>
+                            {% else %}
+                                <span class="text-muted">0</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% set decision = safe_value(scan.final_decision.decision) %}
+                            <span class="decision-badge decision-{{ decision | lower | replace('_', '-') }}">
+                                {{ decision }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="status-badge status-{{ scan.cleanup.destroy_status | lower | replace('_', '-') }}">
+                                {{ scan.cleanup.destroy_status }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-inbox"></i>
+            <p>No scans found. Run a security scan to see results here.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/charts.js') }}"></script>
+<script>
+    // Initialize dashboard charts with data from Flask
+    const chartData = {{ chart_data | tojson }};
+    initDashboardCharts(chartData);
+</script>
+{% endblock %}

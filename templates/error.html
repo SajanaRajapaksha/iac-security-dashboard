@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }} — IaC Security Framework{% endblock %}
+{% block page_title %}{{ error_title }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-center align-items-center" style="min-height: 50vh;">
+    <div class="text-center">
+        <div class="error-icon mb-4">
+            {% if error_code == 404 %}
+                <i class="bi bi-search" style="font-size: 4rem; color: var(--bs-secondary);"></i>
+            {% elif error_code == 403 %}
+                <i class="bi bi-shield-x" style="font-size: 4rem; color: var(--bs-danger);"></i>
+            {% elif error_code == 500 %}
+                <i class="bi bi-exclamation-triangle" style="font-size: 4rem; color: var(--bs-warning);"></i>
+            {% else %}
+                <i class="bi bi-x-circle" style="font-size: 4rem; color: var(--bs-danger);"></i>
+            {% endif %}
+        </div>
+
+        <h2 class="mb-3">{{ error_code }}</h2>
+        <p class="text-muted mb-4">{{ error_message }}</p>
+
+        <div class="d-flex gap-2 justify-content-center">
+            <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">
+                <i class="bi bi-house"></i> Dashboard
+            </a>
+            <a href="{{ url_for('scans.scan_history') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-search"></i> Scans
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

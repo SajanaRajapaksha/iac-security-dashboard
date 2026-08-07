@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Evidence Viewer — {{ artifact_meta.name if artifact_meta else artifact_key }}{% endblock %}
+{% block page_title %}Raw Evidence Viewer{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><i class="bi bi-hash"></i> {{ scan_id }}</p>{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('evidence.evidence_manifest', scan_id=scan_id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Evidence Manifest
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Artifact Information -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-file-earmark-text-fill"></i> Artifact Information</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            {% if artifact_meta %}
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Name</span>
+                    <span class="detail-value fw-semibold">{{ artifact_meta.name }}</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Type</span>
+                    <span class="badge evidence-type-badge evidence-type-{{ artifact_meta.type | lower | replace('_', '-') }}">
+                        {{ artifact_meta.type }}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Size</span>
+                    <span class="detail-value">{{ human_size }}</span>
+                </div>
+            </div>
+            <div class="col-md-12">
+                <div class="detail-item">
+                    <span class="detail-label">S3 Key</span>
+                    <code class="detail-value text-break">{{ artifact_key }}</code>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Hash Verification -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-fingerprint"></i> Evidence Integrity Verification</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="hash-verification hash-{{ verification_status | lower | replace('_', '-') }}">
+            {% if verification_status == 'VERIFIED' %}
+                <div class="hash-status hash-verified">
+                    <i class="bi bi-patch-check-fill"></i>
+                    <span>VERIFIED</span>
+                </div>
+                <p class="hash-description">SHA-256 hash matches the evidence manifest. Forensic integrity confirmed.</p>
+            {% elif verification_status == 'HASH_MISMATCH' %}
+                <div class="hash-status hash-mismatch">
+                    <i class="bi bi-exclamation-octagon-fill"></i>
+                    <span>HASH MISMATCH</span>
+                </div>
+                <p class="hash-description text-danger">
+                    <strong>Warning:</strong> The computed hash does not match the evidence manifest.
+                    This artifact may have been modified since export.
+                </p>
+            {% else %}
+                <div class="hash-status hash-unknown">
+                    <i class="bi bi-question-circle-fill"></i>
+                    <span>NO MANIFEST HASH</span>
+                </div>
+                <p class="hash-description">No expected hash found in the evidence manifest for comparison.</p>
+            {% endif %}
+
+            <div class="hash-details mt-3">
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <span class="detail-label">Computed SHA-256</span>
+                            <code class="detail-value small text-break">{{ computed_hash }}</code>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="detail-item">
+                            <span class="detail-label">Expected SHA-256</span>
+                            <code class="detail-value small text-break">{{ expected_hash or 'N/A' }}</code>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Content Viewer -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5>
+            {% if is_json %}
+                <i class="bi bi-braces"></i> JSON Content
+            {% else %}
+                <i class="bi bi-file-text"></i> Content
+            {% endif %}
+        </h5>
+        <span class="badge bg-secondary">Read-Only</span>
+    </div>
+    <div class="dashboard-card-body p-0">
+        {% if is_truncated %}
+        <div class="alert alert-warning m-3 mb-0">
+            <i class="bi bi-exclamation-triangle-fill"></i>
+            Content truncated for display. Full artifact size: <strong>{{ human_size }}</strong>.
+            Showing first 500 KB.
+        </div>
+        {% endif %}
+
+        <pre class="evidence-content"><code>{{ content }}</code></pre>
+    </div>
+</div>
+{% endblock %}

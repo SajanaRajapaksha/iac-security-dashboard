@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Evidence — {{ scan_id }}{% endblock %}
+{% block page_title %}Evidence Manifest{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><i class="bi bi-hash"></i> {{ scan_id }} — {{ artifacts | length }} artifacts — Generated: {{ generated_at[:19] }}</p>{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('scans.scan_details', scan_id=scan_id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Scan
+</a>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-card">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-file-earmark-lock2-fill"></i> Evidence Artifacts</h5>
+        <span class="badge bg-secondary">{{ artifacts | length }} artifacts</span>
+    </div>
+    <div class="dashboard-card-body">
+        {% if artifacts %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="evidence-table">
+                <thead>
+                    <tr>
+                        <th>Artifact Name</th>
+                        <th>Category</th>
+                        <th>Type</th>
+                        <th>S3 Key</th>
+                        <th>Size</th>
+                        <th>SHA-256</th>
+                        <th>Exported</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for artifact in artifacts %}
+                    <tr>
+                        <td>
+                            <i class="bi bi-file-earmark-code text-primary"></i>
+                            <strong>{{ artifact.name }}</strong>
+                        </td>
+                        <td>
+                            <span class="badge evidence-type-badge evidence-type-{{ artifact._category | lower | replace('_', '-') }}">
+                                {{ artifact._category }}
+                            </span>
+                        </td>
+                        <td class="small text-muted">{{ artifact.type }}</td>
+                        <td>
+                            <code class="small text-break">{{ artifact.s3_key }}</code>
+                        </td>
+                        <td class="text-nowrap">{{ artifact._human_size }}</td>
+                        <td>
+                            <code class="small text-muted" title="{{ artifact.sha256 }}">
+                                {{ artifact.sha256[:16] }}…
+                            </code>
+                        </td>
+                        <td class="small">
+                            {% if artifact.export_timestamp %}
+                                {{ artifact.export_timestamp[:19] }}
+                            {% else %}
+                                —
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="{{ url_for('evidence.raw_evidence_viewer', scan_id=scan_id, artifact_key=artifact.s3_key) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-archive"></i>
+            <p>No evidence artifacts found for this scan.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

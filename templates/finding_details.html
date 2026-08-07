@@ -1,0 +1,344 @@
+{% extends "base.html" %}
+
+{% block title %}{{ finding.finding_id }} — Finding Details{% endblock %}
+{% block page_title %}Finding Details{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><i class="bi bi-hash"></i> {{ scan_id }}</p>{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('findings.findings_list', scan_id=scan_id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Findings
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Severity Banner -->
+<div class="severity-banner severity-banner-{{ finding._normalized_severity | lower }} mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <span class="severity-badge-large severity-{{ finding._normalized_severity | lower }}">
+            {{ finding._normalized_severity }}
+        </span>
+        <div>
+            <h4 class="mb-1">{{ finding.title }}</h4>
+            <span class="text-muted">{{ finding.finding_id }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Core Information -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-info-circle-fill"></i> Core Information</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Finding ID</span>
+                    <span class="detail-value"><code>{{ finding.finding_id }}</code></span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Scanner / Check ID</span>
+                    <span class="detail-value">
+                        <code>{{ finding.original_scanner_id or 'N/A' }}</code>
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Scanner Source</span>
+                    <span class="scanner-badge scanner-{{ finding.scanner | lower }}">
+                        {{ finding.scanner | title }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Phase</span>
+                    <span class="detail-value">{{ finding.phase | replace('_', ' ') | title }}</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Severity</span>
+                    <span class="severity-badge severity-{{ finding._normalized_severity | lower }}">
+                        {{ finding._normalized_severity }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Security Category</span>
+                    <span class="detail-value">{{ finding.security_category or 'UNKNOWN' }}</span>
+                </div>
+            </div>
+            <div class="col-12">
+                <div class="detail-item">
+                    <span class="detail-label">Description</span>
+                    <p class="detail-value mb-0">{{ finding.description or 'No description available.' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Resource Information -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-hdd-stack-fill"></i> Resource</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Resource Type</span>
+                    <span class="detail-value">{{ finding.affected_resource_type or 'Unknown' }}</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Resource Name</span>
+                    <span class="detail-value text-break">{{ finding._normalized_resource }}</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">AWS Service</span>
+                    <span class="detail-value">{{ finding.aws_service or 'Unknown' }}</span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="detail-item">
+                    <span class="detail-label">Full Address</span>
+                    <span class="detail-value text-break"><code>{{ finding._normalized_full_address }}</code></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">File Path</span>
+                    <span class="detail-value"><code>{{ finding.file_path or 'N/A' }}</code></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Line</span>
+                    <span class="detail-value">
+                        {% if finding.line_start %}
+                            {{ finding.line_start }}{% if finding.line_end %} - {{ finding.line_end }}{% endif %}
+                        {% else %}
+                            N/A
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Prowler resource details if resource_name is a dict -->
+        {% if finding.resource_name is mapping %}
+        <hr>
+        <h6 class="text-muted mb-2">AWS Resource Details</h6>
+        <div class="row g-3">
+            {% if finding.resource_name.arn %}
+            <div class="col-12">
+                <div class="detail-item">
+                    <span class="detail-label">ARN</span>
+                    <span class="detail-value text-break"><code>{{ finding.resource_name.arn }}</code></span>
+                </div>
+            </div>
+            {% endif %}
+            {% if finding.resource_name.aws_account_id %}
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">AWS Account</span>
+                    <span class="detail-value">{{ finding.resource_name.aws_account_id }}</span>
+                </div>
+            </div>
+            {% endif %}
+            {% if finding.resource_name.aws_region %}
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">AWS Region</span>
+                    <span class="detail-value">{{ finding.resource_name.aws_region }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Security Context -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-shield-exclamation"></i> Security Context</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Review Required</span>
+                    <span class="detail-value">
+                        {% if finding.review_required %}
+                            <span class="badge bg-warning text-dark"><i class="bi bi-eye-fill"></i> Yes</span>
+                        {% else %}
+                            <span class="badge bg-secondary">No</span>
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Framework Mapping</span>
+                    <span class="detail-value">{{ finding.framework_mapping or 'N/A' }}</span>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="detail-item">
+                    <span class="detail-label">Source Evidence</span>
+                    <span class="detail-value small text-break">{{ finding.source_evidence_artifact or 'N/A' }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Compliance Mappings -->
+        {% if finding.compliance_mappings %}
+        <hr>
+        <h6 class="text-muted mb-2">Compliance Mappings</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Standard</th>
+                        <th>Control Code</th>
+                        <th>Control Title</th>
+                        <th>Reference Type</th>
+                        <th>Confidence</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mapping in finding.compliance_mappings %}
+                    <tr>
+                        <td>{{ mapping.standard }}</td>
+                        <td><code>{{ mapping.control_code }}</code></td>
+                        <td>{{ mapping.control_title }}</td>
+                        <td>{{ mapping.reference_type }}</td>
+                        <td>
+                            <span class="badge {% if mapping.confidence == 'high' %}bg-success{% elif mapping.confidence == 'medium' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ mapping.confidence }}
+                            </span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Remediation Section -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-wrench-adjustable-circle-fill"></i> Remediation</h5>
+        {% if finding.remediation and finding.remediation.available %}
+            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Available</span>
+        {% else %}
+            <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Not Available</span>
+        {% endif %}
+    </div>
+    <div class="dashboard-card-body">
+        {% if finding.remediation and finding.remediation.available %}
+            {% set rem = finding.remediation %}
+
+            <!-- Remediation Target -->
+            {% if rem.target %}
+            <div class="mb-3">
+                <span class="detail-label">Remediation Target</span>
+                <div class="mt-1">
+                    <span class="badge {% if rem.target == 'IAC_SOURCE' %}bg-info{% else %}bg-warning text-dark{% endif %} px-3 py-2">
+                        {% if rem.target == 'IAC_SOURCE' %}
+                            <i class="bi bi-file-earmark-code"></i> IAC_SOURCE — Apply remediation to Terraform code
+                        {% else %}
+                            <i class="bi bi-cloud"></i> {{ rem.target }}
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Remediation Source -->
+            {% if rem.source %}
+            <div class="mb-3">
+                <span class="detail-label">Remediation Source</span>
+                <span class="detail-value">{{ rem.source }}</span>
+            </div>
+            {% endif %}
+
+            <!-- Summary -->
+            {% if rem.summary %}
+            <div class="mb-3">
+                <span class="detail-label">Summary</span>
+                <p class="detail-value">{{ rem.summary }}</p>
+            </div>
+            {% endif %}
+
+            <!-- Detailed Steps -->
+            {% if rem.steps %}
+            <div class="mb-3">
+                <span class="detail-label">Remediation Steps</span>
+                <ol class="remediation-steps mt-2">
+                    {% for step in rem.steps %}
+                    <li>{{ step }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+            {% endif %}
+
+            <!-- Terraform Code Example -->
+            {% if rem.terraform_example %}
+            <div class="mb-3">
+                <span class="detail-label">Terraform Code Example</span>
+                <pre class="code-block mt-2"><code>{{ rem.terraform_example }}</code></pre>
+            </div>
+            {% endif %}
+
+            <!-- Verification Steps -->
+            {% if rem.verification %}
+            <div class="mb-3">
+                <span class="detail-label">Verification Steps</span>
+                <ol class="remediation-steps mt-2">
+                    {% for step in rem.verification %}
+                    <li>{{ step }}</li>
+                    {% endfor %}
+                </ol>
+            </div>
+            {% endif %}
+
+            <!-- References -->
+            {% if rem.references %}
+            <div class="mb-3">
+                <span class="detail-label">References</span>
+                <ul class="mt-2">
+                    {% for ref in rem.references %}
+                    <li>
+                        {% if ref.startswith('http') %}
+                            <a href="{{ ref }}" target="_blank" rel="noopener">{{ ref }}</a>
+                        {% else %}
+                            {{ ref }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+        {% else %}
+            <div class="empty-state py-4">
+                <i class="bi bi-info-circle" style="font-size: 2rem; color: var(--bs-secondary);"></i>
+                <p class="mt-2 text-muted">No enriched remediation guidance is available for this finding.</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

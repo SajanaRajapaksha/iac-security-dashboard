@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+
+{% block title %}{{ scan_id }} — Scan Details{% endblock %}
+{% block page_title %}Scan Details{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><i class="bi bi-hash"></i> {{ scan_id }}</p>{% endblock %}
+
+{% block header_actions %}
+<div class="d-flex gap-2">
+    <a href="{{ url_for('findings.findings_list', scan_id=scan_id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-exclamation-triangle"></i> Findings
+    </a>
+    <a href="{{ url_for('evidence.evidence_manifest', scan_id=scan_id) }}" class="btn btn-sm btn-outline-primary">
+        <i class="bi bi-file-earmark-lock2"></i> Evidence
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Scan Identity -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-fingerprint"></i> Scan Identity</h5>
+        <span class="status-badge status-{{ scan.scan_status | lower | replace('_', '-') }}">
+            {{ scan.scan_status }}
+        </span>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Scan ID</span>
+                    <span class="detail-value"><code>{{ scan.scan_id }}</code></span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Repository</span>
+                    <span class="detail-value">{{ safe_value(scan.repository.name) }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Branch</span>
+                    <span class="detail-value">{{ safe_value(scan.repository.branch) }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Commit SHA</span>
+                    <span class="detail-value">
+                        {% set commit = safe_value(scan.repository.commit_sha) %}
+                        {% if commit != 'NOT_AVAILABLE' %}
+                            <code>{{ commit[:12] }}</code>
+                        {% else %}
+                            NOT_AVAILABLE
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Workflow ID</span>
+                    <span class="detail-value">{{ safe_value(scan.workflow_id) }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Started</span>
+                    <span class="detail-value">{{ safe_value(scan.started_timestamp) }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Completed</span>
+                    <span class="detail-value">
+                        {% if scan.completed_timestamp and scan.completed_timestamp != 'NOT_AVAILABLE' %}
+                            {{ scan.completed_timestamp[:19] }}
+                        {% else %}
+                            NOT_AVAILABLE
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Status</span>
+                    <span class="detail-value">
+                        <span class="status-badge status-{{ scan.scan_status | lower | replace('_', '-') }}">
+                            {{ scan.scan_status }}
+                        </span>
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Risk Comparison — Prominent -->
+<div class="dashboard-card mb-4 risk-comparison-card">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-arrow-left-right"></i> Risk Comparison</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="risk-comparison">
+            <div class="risk-score-box">
+                <span class="risk-label">Pre-Deployment</span>
+                <span class="risk-value risk-value-pre">{{ scan.pre_deployment.risk_score }}</span>
+                <span class="risk-band risk-band-{{ scan.pre_deployment.risk_band | lower | replace('_', '-') }}">
+                    {{ scan.pre_deployment.risk_band | replace('_', ' ') }}
+                </span>
+            </div>
+
+            <div class="risk-arrow">
+                <i class="bi bi-arrow-right-circle-fill"></i>
+            </div>
+
+            <div class="risk-score-box">
+                <span class="risk-label">Post-Deployment</span>
+                {% if scan.runtime.risk_score is not none %}
+                <span class="risk-value risk-value-post">{{ scan.runtime.risk_score }}</span>
+                <span class="risk-band risk-band-{{ scan.runtime.risk_band | lower | replace('_', '-') }}">
+                    {{ scan.runtime.risk_band | replace('_', ' ') }}
+                </span>
+                {% else %}
+                <span class="risk-value text-muted">N/A</span>
+                <span class="risk-band text-muted">Not Scored</span>
+                {% endif %}
+            </div>
+
+            <div class="risk-arrow">
+                <i class="bi bi-arrow-right-circle-fill"></i>
+            </div>
+
+            <div class="risk-score-box">
+                <span class="risk-label">Score Delta</span>
+                {% set delta = safe_value(scan.risk_comparison.score_delta) %}
+                <span class="risk-value">{{ delta }}</span>
+                <span class="risk-band">
+                    {% set direction = safe_value(scan.risk_comparison.direction) %}
+                    {% if direction == 'IMPROVED' %}
+                        <i class="bi bi-arrow-up-circle-fill text-success"></i> Improved
+                    {% elif direction == 'DEGRADED' %}
+                        <i class="bi bi-arrow-down-circle-fill text-danger"></i> Degraded
+                    {% elif direction == 'STABLE' %}
+                        <i class="bi bi-dash-circle-fill text-secondary"></i> Stable
+                    {% else %}
+                        {{ direction }}
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Final Security Decision — Prominent -->
+<div class="dashboard-card mb-4 decision-card">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-shield-check"></i> Final Security Decision</h5>
+    </div>
+    <div class="dashboard-card-body">
+        {% set decision = safe_value(scan.final_decision.decision) %}
+        {% set reason = safe_value(scan.final_decision.reason) %}
+        {% set urgent = scan.final_decision.urgent_review_required %}
+
+        <div class="final-decision-display">
+            <span class="decision-badge-large decision-{{ decision | lower | replace('_', '-') }}">
+                {% if decision == 'APPROVED' %}
+                    <i class="bi bi-check-circle-fill"></i>
+                {% elif decision == 'DENIED' %}
+                    <i class="bi bi-x-circle-fill"></i>
+                {% elif decision in ('REVIEW_REQUIRED', 'URGENT_REVIEW') %}
+                    <i class="bi bi-exclamation-circle-fill"></i>
+                {% else %}
+                    <i class="bi bi-question-circle-fill"></i>
+                {% endif %}
+                {{ decision }}
+            </span>
+
+            {% if urgent %}
+            <div class="alert alert-danger mt-3 mb-0">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <strong>Urgent Review Required</strong>
+            </div>
+            {% endif %}
+
+            {% if reason != 'NOT_AVAILABLE' %}
+            <div class="decision-reason mt-3">
+                <strong>Reason:</strong> {{ reason }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="row g-3 mb-4">
+    <!-- Pre-Deployment Analysis -->
+    <div class="col-xl-6">
+        <div class="dashboard-card h-100">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-code-square"></i> Pre-Deployment Analysis</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <span class="detail-label">Risk Score</span>
+                            <span class="detail-value fw-bold">{{ scan.pre_deployment.risk_score }}</span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <span class="detail-label">Risk Band</span>
+                            <span class="risk-band risk-band-{{ scan.pre_deployment.risk_band | lower | replace('_', '-') }}">
+                                {{ scan.pre_deployment.risk_band | replace('_', ' ') }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="text-muted mb-2">Finding Counts</h6>
+                <div class="severity-summary">
+                    <div class="severity-item">
+                        <span class="severity-badge severity-total">{{ scan.pre_deployment.total_findings }}</span>
+                        <span class="severity-label">Total</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-critical">{{ scan.pre_deployment.critical_count }}</span>
+                        <span class="severity-label">Critical</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-high">{{ scan.pre_deployment.high_count }}</span>
+                        <span class="severity-label">High</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-medium">{{ scan.pre_deployment.medium_count }}</span>
+                        <span class="severity-label">Medium</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-low">{{ scan.pre_deployment.low_count }}</span>
+                        <span class="severity-label">Low</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-unknown">{{ scan.pre_deployment.unknown_count }}</span>
+                        <span class="severity-label">Unknown</span>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6 class="text-muted mb-2">Scanner Breakdown</h6>
+                <div class="row g-2">
+                    <div class="col-4">
+                        <div class="detail-item">
+                            <span class="detail-label">Checkov</span>
+                            <span class="detail-value">{{ scan.pre_deployment.checkov_finding_count }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="detail-item">
+                            <span class="detail-label">Policy</span>
+                            <span class="detail-value">{{ scan.pre_deployment.policy_finding_count }}</span>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="detail-item">
+                            <span class="detail-label">Review Required</span>
+                            <span class="detail-value">{{ scan.pre_deployment.review_required_finding_count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Runtime Analysis -->
+    <div class="col-xl-6">
+        <div class="dashboard-card h-100">
+            <div class="dashboard-card-header">
+                <h5><i class="bi bi-cloud-check-fill"></i> Runtime Analysis</h5>
+            </div>
+            <div class="dashboard-card-body">
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <span class="detail-label">Risk Score</span>
+                            <span class="detail-value fw-bold">
+                                {% if scan.runtime.risk_score is not none %}
+                                    {{ scan.runtime.risk_score }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="detail-item">
+                            <span class="detail-label">Risk Band</span>
+                            {% if scan.runtime.risk_band %}
+                            <span class="risk-band risk-band-{{ scan.runtime.risk_band | lower | replace('_', '-') }}">
+                                {{ scan.runtime.risk_band | replace('_', ' ') }}
+                            </span>
+                            {% else %}
+                            <span class="text-muted">N/A</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <h6 class="text-muted mb-2">Runtime Finding Counts</h6>
+                <div class="severity-summary">
+                    <div class="severity-item">
+                        <span class="severity-badge severity-total">{{ scan.runtime.finding_count }}</span>
+                        <span class="severity-label">Total</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-critical">{{ scan.runtime.critical_count }}</span>
+                        <span class="severity-label">Critical</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-high">{{ scan.runtime.high_count }}</span>
+                        <span class="severity-label">High</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-medium">{{ scan.runtime.medium_count }}</span>
+                        <span class="severity-label">Medium</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-low">{{ scan.runtime.low_count }}</span>
+                        <span class="severity-label">Low</span>
+                    </div>
+                    <div class="severity-item">
+                        <span class="severity-badge severity-unknown">{{ scan.runtime.unknown_count }}</span>
+                        <span class="severity-label">Unknown</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Deployment Information -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-rocket-takeoff-fill"></i> Deployment</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <div class="detail-item">
+                    <span class="detail-label">Status</span>
+                    <span class="status-badge status-{{ scan.deployment.status | lower | replace('_', '-') }}">
+                        {{ scan.deployment.status }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="detail-item">
+                    <span class="detail-label">Authorization</span>
+                    <span class="detail-value">{{ safe_value(scan.deployment.authorization_decision) }}</span>
+                </div>
+            </div>
+            <div class="col-md-2">
+                <div class="detail-item">
+                    <span class="detail-label">AWS Region</span>
+                    <span class="detail-value">{{ safe_value(scan.deployment.aws_region) }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Planned Resources</span>
+                    <span class="detail-value">{{ safe_value(scan.deployment.planned_resources) }}</span>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="detail-item">
+                    <span class="detail-label">Deployed Resources</span>
+                    <span class="detail-value">{{ safe_value(scan.deployment.deployed_resources) }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cleanup Status -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-trash3-fill"></i> Cleanup</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-6">
+                <div class="detail-item">
+                    <span class="detail-label">Terraform Destroy</span>
+                    <span class="status-badge status-{{ scan.cleanup.destroy_status | lower | replace('_', '-') }}">
+                        {{ scan.cleanup.destroy_status }}
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="detail-item">
+                    <span class="detail-label">Cleanup Verification</span>
+                    <span class="status-badge status-{{ scan.cleanup.verification_status | lower | replace('_', '-') }}">
+                        {{ scan.cleanup.verification_status }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Pipeline Lifecycle -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-diagram-3-fill"></i> Pipeline Lifecycle</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="pipeline-timeline">
+            {% for stage in pipeline_stages %}
+            <div class="pipeline-stage">
+                <div class="pipeline-stage-indicator pipeline-{{ stage.status | lower | replace('_', '-') }}">
+                    {% if stage.status == 'COMPLETED' %}
+                        <i class="bi bi-check-circle-fill"></i>
+                    {% elif stage.status == 'FAILED' %}
+                        <i class="bi bi-x-circle-fill"></i>
+                    {% elif stage.status == 'BLOCKED' %}
+                        <i class="bi bi-slash-circle-fill"></i>
+                    {% elif stage.status in ('NOT_EXECUTED', 'NOT_AVAILABLE') %}
+                        <i class="bi bi-circle"></i>
+                    {% else %}
+                        <i class="bi bi-question-circle"></i>
+                    {% endif %}
+                </div>
+                <div class="pipeline-stage-content">
+                    <span class="pipeline-stage-name">{{ stage.name }}</span>
+                    <span class="pipeline-stage-status pipeline-status-{{ stage.status | lower | replace('_', '-') }}">
+                        {{ stage.status | replace('_', ' ') }}
+                    </span>
+                </div>
+            </div>
+            {% if not loop.last %}
+            <div class="pipeline-connector"></div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Security Categories from Findings -->
+{% if category_counts %}
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-tags-fill"></i> Security Categories</h5>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="d-flex flex-wrap gap-2">
+            {% for cat, count in category_counts.items() %}
+            <span class="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 px-3 py-2">
+                {{ cat }} <span class="badge bg-primary ms-1">{{ count }}</span>
+            </span>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

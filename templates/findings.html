@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Findings — {{ scan_id }}{% endblock %}
+{% block page_title %}Findings{% endblock %}
+{% block page_subtitle %}<p class="page-subtitle"><i class="bi bi-hash"></i> {{ scan_id }} — {{ findings | length }} findings</p>{% endblock %}
+
+{% block header_actions %}
+<a href="{{ url_for('scans.scan_details', scan_id=scan_id) }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Back to Scan
+</a>
+{% endblock %}
+
+{% block content %}
+<!-- Filters -->
+<div class="dashboard-card mb-4">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-funnel-fill"></i> Filters</h5>
+        <button class="btn btn-sm btn-outline-secondary" onclick="clearFindingFilters()">
+            <i class="bi bi-x-circle"></i> Clear
+        </button>
+    </div>
+    <div class="dashboard-card-body">
+        <div class="row g-3">
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Severity</label>
+                <select class="form-select form-select-sm" id="filter-severity" onchange="filterFindings()">
+                    <option value="">All</option>
+                    {% for s in severities %}
+                    <option value="{{ s }}">{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Scanner</label>
+                <select class="form-select form-select-sm" id="filter-scanner" onchange="filterFindings()">
+                    <option value="">All</option>
+                    {% for s in scanners %}
+                    <option value="{{ s }}">{{ s | title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Phase</label>
+                <select class="form-select form-select-sm" id="filter-phase" onchange="filterFindings()">
+                    <option value="">All</option>
+                    {% for p in phases %}
+                    <option value="{{ p }}">{{ p | replace('_', ' ') | title }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Category</label>
+                <select class="form-select form-select-sm" id="filter-category" onchange="filterFindings()">
+                    <option value="">All</option>
+                    {% for c in categories %}
+                    <option value="{{ c }}">{{ c }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Review Required</label>
+                <select class="form-select form-select-sm" id="filter-review" onchange="filterFindings()">
+                    <option value="">All</option>
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label fw-semibold small">Remediation</label>
+                <select class="form-select form-select-sm" id="filter-remediation" onchange="filterFindings()">
+                    <option value="">All</option>
+                    <option value="true">Available</option>
+                    <option value="false">Not Available</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Findings Table -->
+<div class="dashboard-card">
+    <div class="dashboard-card-header">
+        <h5><i class="bi bi-list-check"></i> All Findings</h5>
+        <span class="badge bg-secondary" id="findings-count">{{ findings | length }} findings</span>
+    </div>
+    <div class="dashboard-card-body">
+        {% if findings %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle" id="findings-table">
+                <thead>
+                    <tr>
+                        <th>Severity</th>
+                        <th>Scanner</th>
+                        <th>Phase</th>
+                        <th>Finding ID</th>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Resource</th>
+                        <th>Review</th>
+                        <th>Remediation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in findings %}
+                    <tr data-severity="{{ f._normalized_severity }}"
+                        data-scanner="{{ f.scanner }}"
+                        data-phase="{{ f.phase }}"
+                        data-category="{{ f.security_category }}"
+                        data-review="{{ f.review_required | lower }}"
+                        data-remediation="{{ f.remediation.available | lower if f.remediation else 'false' }}"
+                        class="clickable-row"
+                        onclick="window.location='{{ url_for('findings.finding_details', scan_id=scan_id, finding_key=f._finding_key) }}'">
+                        <td>
+                            <span class="severity-badge severity-{{ f._normalized_severity | lower }}">
+                                {{ f._normalized_severity }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="scanner-badge scanner-{{ f.scanner | lower }}">
+                                {{ f.scanner | title }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="small text-muted">{{ f.phase | replace('_', ' ') | title }}</span>
+                        </td>
+                        <td><code class="small">{{ f.finding_id }}</code></td>
+                        <td class="finding-title">{{ f.title[:80] }}{% if f.title | length > 80 %}…{% endif %}</td>
+                        <td><span class="small">{{ f.security_category }}</span></td>
+                        <td><span class="small text-break">{{ f._normalized_resource[:50] }}{% if f._normalized_resource | length > 50 %}…{% endif %}</span></td>
+                        <td>
+                            {% if f.review_required %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-eye-fill"></i> Yes</span>
+                            {% else %}
+                                <span class="text-muted small">No</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if f.remediation and f.remediation.available %}
+                                <span class="badge bg-success"><i class="bi bi-check-lg"></i> Yes</span>
+                            {% else %}
+                                <span class="text-muted small">No</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="bi bi-check-circle"></i>
+            <p>No findings for this scan.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function filterFindings() {
+    const severity = document.getElementById('filter-severity').value;
+    const scanner = document.getElementById('filter-scanner').value;
+    const phase = document.getElementById('filter-phase').value;
+    const category = document.getElementById('filter-category').value;
+    const review = document.getElementById('filter-review').value;
+    const remediation = document.getElementById('filter-remediation').value;
+
+    let visible = 0;
+    document.querySelectorAll('#findings-table tbody tr').forEach(row => {
+        let show = true;
+        if (severity && row.dataset.severity !== severity) show = false;
+        if (scanner && row.dataset.scanner !== scanner) show = false;
+        if (phase && row.dataset.phase !== phase) show = false;
+        if (category && row.dataset.category !== category) show = false;
+        if (review && row.dataset.review !== review) show = false;
+        if (remediation && row.dataset.remediation !== remediation) show = false;
+        row.style.display = show ? '' : 'none';
+        if (show) visible++;
+    });
+
+    document.getElementById('findings-count').textContent = visible + ' findings';
+}
+
+function clearFindingFilters() {
+    document.querySelectorAll('.dashboard-card select').forEach(s => s.value = '');
+    filterFindings();
+}
+</script>
+{% endblock %}
