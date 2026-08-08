@@ -47,8 +47,18 @@ def evidence_manifest(scan_id):
 def raw_evidence_viewer(scan_id, artifact_key):
     """Raw evidence viewer with SHA-256 integrity verification."""
     s3 = current_app.config["S3_SERVICE"]
+    
+    # 1. Validate that the artifact key belongs to the requested scan
+    expected_prefix = f"raw/{scan_id}/"
+    if not artifact_key.startswith(expected_prefix):
+        return render_template(
+            "error.html",
+            error_title="Access Denied",
+            error_message="The requested artifact does not belong to this scan.",
+            error_code=403,
+        ), 403
 
-    # Get the evidence manifest first for SHA-256 comparison
+    # 2. Get the evidence manifest and validate artifact presence
     manifest = s3.get_evidence_manifest(scan_id)
     expected_hash = None
     artifact_meta = None
@@ -59,17 +69,26 @@ def raw_evidence_viewer(scan_id, artifact_key):
                 expected_hash = artifact.get("sha256")
                 artifact_meta = artifact
                 break
+                
+    if not artifact_meta:
+        return render_template(
+            "error.html",
+            error_title="Artifact Not Authorized",
+            error_message="The requested artifact is not present in the scan's evidence manifest.",
+            error_code=403,
+        ), 403
 
-    # Fetch the raw evidence
+    # 3. Fetch the raw evidence only after authorization checks pass
     raw_bytes, content_type = s3.get_raw_evidence(artifact_key)
 
     if raw_bytes is None:
         return render_template(
             "error.html",
             error_title="Evidence Not Found",
-            error_message=f"Evidence artifact not found: {artifact_key}",
+            error_message=f"Evidence artifact not found in storage: {artifact_key}",
             error_code=404,
         ), 404
+
 
     # Calculate SHA-256 hash
     computed_hash = hashlib.sha256(raw_bytes).hexdigest()

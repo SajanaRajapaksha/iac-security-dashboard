@@ -39,20 +39,78 @@ def scan_details(scan_id):
             error_code=404,
         ), 404
 
-    # Get findings for severity breakdown
-    findings_data = s3.get_findings(scan_id)
-    findings = findings_data.get("findings", []) if findings_data else []
+    # Calculate Score Delta
+    pre = summary.get("pre_deployment", {})
+    runtime = summary.get("runtime", {})
+    
+    pre_score = pre.get("risk_score")
+    post_score = runtime.get("risk_score")
+    
+    delta = None
+    direction = None
+    if isinstance(pre_score, (int, float)) and isinstance(post_score, (int, float)):
+        delta = post_score - pre_score
+        if delta > 0:
+            direction = "IMPROVED"
+        elif delta < 0:
+            direction = "DEGRADED"
+        else:
+            direction = "UNCHANGED"
+            
+    summary["_delta"] = delta
+    summary["_direction"] = direction
 
-    # Normalize findings for display
-    for f in findings:
+    # Get findings and separate them
+    findings_data = s3.get_findings(scan_id)
+    all_findings = findings_data.get("findings", []) if findings_data else []
+
+    pre_findings = []
+    post_findings = []
+    
+    # Severity counts and source counts for charts
+    pre_severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "UNKNOWN": 0}
+    post_severity_counts = {"CRITICAL": 0, "HIGH": 0, "MEDIUM": 0, "LOW": 0, "UNKNOWN": 0}
+    pre_source_counts = {"CHECKOV": 0, "REGO/CONFTEST": 0, "OTHER": 0}
+    
+    for f in all_findings:
         f["_normalized_severity"] = s3.normalize_severity(f.get("severity"))
         f["_normalized_resource"] = s3.normalize_resource_name(f.get("resource_name"))
+        f["_finding_key"] = f.get("finding_record_key") or s3.generate_finding_key(f)
+        
+        phase = f.get("phase", "").upper()
+        severity = f["_normalized_severity"]
+        scanner = f.get("scanner", "").upper()
+        
+        # Categorize by phase
+        if phase in ("PRE_DEPLOYMENT", "STATIC", "CODE", "PLAN"):
+            pre_findings.append(f)
+            if severity in pre_severity_counts:
+                pre_severity_counts[severity] += 1
+            else:
+                pre_severity_counts["UNKNOWN"] += 1
+                
+            # Count sources for pre-deployment
+            if "CHECKOV" in scanner:
+                pre_source_counts["CHECKOV"] += 1
+            elif "REGO" in scanner or "CONFTEST" in scanner or "POLICY" in scanner:
+                pre_source_counts["REGO/CONFTEST"] += 1
+            else:
+                pre_source_counts["OTHER"] += 1
+        else:
+            # Everything else (RUNTIME, POST_DEPLOYMENT, etc.) goes to post
+            post_findings.append(f)
+            if severity in post_severity_counts:
+                post_severity_counts[severity] += 1
+            else:
+                post_severity_counts["UNKNOWN"] += 1
 
-    # Build category counts from findings
-    category_counts = {}
-    for f in findings:
-        cat = f.get("security_category", "UNKNOWN")
-        category_counts[cat] = category_counts.get(cat, 0) + 1
+    chart_data = {
+        "pre_severity_counts": pre_severity_counts,
+        "post_severity_counts": post_severity_counts,
+        "pre_source_counts": pre_source_counts,
+        "has_pre": len(pre_findings) > 0,
+        "has_post": len(post_findings) > 0,
+    }
 
     # Pipeline lifecycle stages
     pipeline_stages = _build_pipeline_stages(summary)
@@ -61,10 +119,12 @@ def scan_details(scan_id):
         "scan_details.html",
         scan=summary,
         scan_id=scan_id,
-        findings=findings,
-        category_counts=category_counts,
+        pre_findings=pre_findings,
+        post_findings=post_findings,
+        chart_data=chart_data,
         pipeline_stages=pipeline_stages,
     )
+
 
 
 def _is_valid_scan_id(scan_id):

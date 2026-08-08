@@ -31,7 +31,7 @@ def findings_list(scan_id):
     for f in findings:
         f["_normalized_severity"] = s3.normalize_severity(f.get("severity"))
         f["_normalized_resource"] = s3.normalize_resource_name(f.get("resource_name"))
-        f["_finding_key"] = quote(f.get("finding_id", ""), safe="")
+        f["_finding_key"] = f.get("finding_record_key") or s3.generate_finding_key(f)
 
         scanners.add(f.get("scanner", "unknown"))
         phases.add(f.get("phase", "UNKNOWN"))
@@ -63,11 +63,10 @@ def finding_details(scan_id, finding_key):
             error_code=404,
         ), 404
 
-    # Find the specific finding by its ID
-    decoded_key = unquote(finding_key)
+    # Find the specific finding by its generated key
     finding = None
     for f in findings_data.get("findings", []):
-        if f.get("finding_id") == decoded_key:
+        if f.get("finding_record_key") == finding_key or s3.generate_finding_key(f) == finding_key:
             finding = f
             break
 
@@ -75,7 +74,7 @@ def finding_details(scan_id, finding_key):
         return render_template(
             "error.html",
             error_title="Finding Not Found",
-            error_message=f"Finding '{decoded_key}' not found in scan {scan_id}",
+            error_message=f"Finding record not found in scan {scan_id}",
             error_code=404,
         ), 404
 
@@ -93,3 +92,4 @@ def finding_details(scan_id, finding_key):
         scan_id=scan_id,
         finding=finding,
     )
+

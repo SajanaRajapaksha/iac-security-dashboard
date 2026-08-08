@@ -239,104 +239,184 @@
 
 <!-- Remediation Section -->
 <div class="dashboard-card mb-4">
-    <div class="dashboard-card-header">
-        <h5><i class="bi bi-wrench-adjustable-circle-fill"></i> Remediation</h5>
-        {% if finding.remediation and finding.remediation.available %}
-            <span class="badge bg-success"><i class="bi bi-check-circle-fill"></i> Available</span>
-        {% else %}
-            <span class="badge bg-secondary"><i class="bi bi-x-circle"></i> Not Available</span>
-        {% endif %}
+    <div class="dashboard-card-header d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center">
+            {% set rem_source = finding.remediation.source if finding.remediation else '' %}
+            {% if rem_source in ['OPENAI_WITH_SCANNER_CONTEXT', 'LOCAL_AI_REMEDIATION_CACHE', 'AI_REMEDIATION'] %}
+                <h5 class="mb-0"><i class="bi bi-magic text-primary me-2"></i>Enriched Remediation</h5>
+                <span class="badge bg-primary ms-3">AI-Assisted</span>
+            {% elif rem_source == 'PROWLER' %}
+                <h5 class="mb-0"><i class="bi bi-shield-check text-secondary me-2"></i>Prowler Remediation Guidance</h5>
+            {% else %}
+                <h5 class="mb-0"><i class="bi bi-magic text-primary me-2"></i>Enriched Remediation</h5>
+            {% endif %}
+        </div>
     </div>
     <div class="dashboard-card-body">
         {% if finding.remediation and finding.remediation.available %}
             {% set rem = finding.remediation %}
 
-            <!-- Remediation Target -->
-            {% if rem.target %}
-            <div class="mb-3">
-                <span class="detail-label">Remediation Target</span>
-                <div class="mt-1">
-                    <span class="badge {% if rem.target == 'IAC_SOURCE' %}bg-info{% else %}bg-warning text-dark{% endif %} px-3 py-2">
-                        {% if rem.target == 'IAC_SOURCE' %}
-                            <i class="bi bi-file-earmark-code"></i> IAC_SOURCE — Apply remediation to Terraform code
+            <div class="row g-4">
+                <div class="col-md-8">
+                    <!-- Summary -->
+                    {% if rem.summary %}
+                    <div class="mb-4">
+                        <span class="detail-label text-uppercase fw-bold text-muted small">Summary</span>
+                        <p class="detail-value mt-1 mb-0">{{ rem.summary }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Detailed Steps -->
+                    {% if rem.steps %}
+                    <div class="mb-4">
+                        <span class="detail-label text-uppercase fw-bold text-muted small">Terraform / IaC Action</span>
+                        {% if rem.steps is string %}
+                            <p class="detail-value mt-2 mb-0">{{ rem.steps }}</p>
                         {% else %}
-                            <i class="bi bi-cloud"></i> {{ rem.target }}
+                            <ol class="remediation-steps mt-2 mb-0 ps-3">
+                                {% for step in rem.steps %}
+                                <li class="mb-2">{{ step }}</li>
+                                {% endfor %}
+                            </ol>
                         {% endif %}
-                    </span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Runtime Action -->
+                    {% if rem.runtime_action %}
+                    <div class="mb-4">
+                        <span class="detail-label text-uppercase fw-bold text-muted small">Runtime Action</span>
+                        {% if rem.runtime_action is string %}
+                            <p class="detail-value mt-2 mb-0">{{ rem.runtime_action }}</p>
+                        {% else %}
+                            <ol class="remediation-steps mt-2 mb-0 ps-3">
+                                {% for step in rem.runtime_action %}
+                                <li class="mb-2">{{ step }}</li>
+                                {% endfor %}
+                            </ol>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Scanner Remediation -->
+                    {% if rem.scanner_remediation %}
+                    <div class="mb-4">
+                        <span class="detail-label text-uppercase fw-bold text-muted small">Scanner Remediation</span>
+                        <p class="detail-value mt-1 mb-0">{{ rem.scanner_remediation }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Terraform Code Example -->
+                    {% if rem.terraform_example %}
+                    <div class="mb-4">
+                        <span class="detail-label text-uppercase fw-bold text-muted small">Terraform Example</span>
+                        <pre class="code-block mt-2 p-3 bg-light rounded border"><code>{{ rem.terraform_example }}</code></pre>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Verification Steps -->
+                    {% if rem.verification %}
+                    <div class="mb-4">
+                        <span class="detail-label text-uppercase fw-bold text-muted small">Validation</span>
+                        {% if rem.verification is string %}
+                            <p class="detail-value mt-2 mb-0">{{ rem.verification }}</p>
+                        {% else %}
+                            <ol class="remediation-steps mt-2 mb-0 ps-3">
+                                {% for step in rem.verification %}
+                                <li class="mb-1">{{ step }}</li>
+                                {% endfor %}
+                            </ol>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Operational Caution -->
+                    {% if rem.operational_caution %}
+                    <div class="mb-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle text-warning fs-5 me-2 mt-1"></i>
+                            <div>
+                                <span class="fw-bold text-dark d-block mb-1">Operational Caution</span>
+                                <span class="text-dark small">{{ rem.operational_caution }}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-4">
+                    <div class="bg-light p-3 rounded border">
+                        <!-- Priority -->
+                        {% if rem.priority %}
+                        <div class="mb-3">
+                            <span class="detail-label text-uppercase fw-bold text-muted small d-block mb-1">Priority</span>
+                            <span class="badge {% if rem.priority == 'HIGH' or rem.priority == 'CRITICAL' %}bg-danger{% elif rem.priority == 'MEDIUM' %}bg-warning text-dark{% else %}bg-info{% endif %}">{{ rem.priority }}</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- Remediation Target -->
+                        {% if rem.target %}
+                        <div class="mb-3">
+                            <span class="detail-label text-uppercase fw-bold text-muted small d-block mb-1">Target</span>
+                            <span class="badge bg-secondary px-2 py-1">
+                                {% if rem.target == 'IAC_SOURCE' %}
+                                    <i class="bi bi-file-earmark-code me-1"></i> IAC SOURCE
+                                {% else %}
+                                    <i class="bi bi-cloud me-1"></i> {{ rem.target | replace('_', ' ') }}
+                                {% endif %}
+                            </span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Remediation Source -->
+                        {% if rem.source %}
+                        <div class="mb-3">
+                            <span class="detail-label text-uppercase fw-bold text-muted small d-block mb-1">Source</span>
+                            <span class="detail-value small text-break text-muted">{{ rem.source }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        <!-- Affected Resources -->
+                        {% if rem.affected_resource_count %}
+                        <div class="mb-3">
+                            <span class="detail-label text-uppercase fw-bold text-muted small d-block mb-1">Affected Resources</span>
+                            <span class="detail-value small fw-bold">{{ rem.affected_resource_count }} associated finding(s)</span>
+                        </div>
+                        {% endif %}
+
+                        <!-- References -->
+                        {% if rem.references %}
+                        <div>
+                            <span class="detail-label text-uppercase fw-bold text-muted small d-block mb-1">References</span>
+                            <ul class="list-unstyled mb-0 small">
+                                {% if rem.references is string %}
+                                    {% if rem.references.startswith('http') %}
+                                        <li><a href="{{ rem.references }}" target="_blank" rel="noopener"><i class="bi bi-box-arrow-up-right me-1"></i>Link</a></li>
+                                    {% else %}
+                                        <li>{{ rem.references }}</li>
+                                    {% endif %}
+                                {% else %}
+                                    {% for ref in rem.references %}
+                                    <li class="mb-1 text-truncate">
+                                        {% if ref.startswith('http') %}
+                                            <a href="{{ ref }}" target="_blank" rel="noopener" title="{{ ref }}"><i class="bi bi-box-arrow-up-right me-1"></i>Link</a>
+                                        {% else %}
+                                            {{ ref }}
+                                        {% endif %}
+                                    </li>
+                                    {% endfor %}
+                                {% endif %}
+                            </ul>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            {% endif %}
-
-            <!-- Remediation Source -->
-            {% if rem.source %}
-            <div class="mb-3">
-                <span class="detail-label">Remediation Source</span>
-                <span class="detail-value">{{ rem.source }}</span>
-            </div>
-            {% endif %}
-
-            <!-- Summary -->
-            {% if rem.summary %}
-            <div class="mb-3">
-                <span class="detail-label">Summary</span>
-                <p class="detail-value">{{ rem.summary }}</p>
-            </div>
-            {% endif %}
-
-            <!-- Detailed Steps -->
-            {% if rem.steps %}
-            <div class="mb-3">
-                <span class="detail-label">Remediation Steps</span>
-                <ol class="remediation-steps mt-2">
-                    {% for step in rem.steps %}
-                    <li>{{ step }}</li>
-                    {% endfor %}
-                </ol>
-            </div>
-            {% endif %}
-
-            <!-- Terraform Code Example -->
-            {% if rem.terraform_example %}
-            <div class="mb-3">
-                <span class="detail-label">Terraform Code Example</span>
-                <pre class="code-block mt-2"><code>{{ rem.terraform_example }}</code></pre>
-            </div>
-            {% endif %}
-
-            <!-- Verification Steps -->
-            {% if rem.verification %}
-            <div class="mb-3">
-                <span class="detail-label">Verification Steps</span>
-                <ol class="remediation-steps mt-2">
-                    {% for step in rem.verification %}
-                    <li>{{ step }}</li>
-                    {% endfor %}
-                </ol>
-            </div>
-            {% endif %}
-
-            <!-- References -->
-            {% if rem.references %}
-            <div class="mb-3">
-                <span class="detail-label">References</span>
-                <ul class="mt-2">
-                    {% for ref in rem.references %}
-                    <li>
-                        {% if ref.startswith('http') %}
-                            <a href="{{ ref }}" target="_blank" rel="noopener">{{ ref }}</a>
-                        {% else %}
-                            {{ ref }}
-                        {% endif %}
-                    </li>
-                    {% endfor %}
-                </ul>
-            </div>
-            {% endif %}
 
         {% else %}
-            <div class="empty-state py-4">
-                <i class="bi bi-info-circle" style="font-size: 2rem; color: var(--bs-secondary);"></i>
-                <p class="mt-2 text-muted">No enriched remediation guidance is available for this finding.</p>
+            <div class="empty-state py-5 text-center">
+                <i class="bi bi-info-circle" style="font-size: 2.5rem; color: var(--bs-secondary);"></i>
+                <p class="mt-3 text-muted fs-5">No enriched remediation guidance is available for this finding.</p>
             </div>
         {% endif %}
     </div>

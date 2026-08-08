@@ -46,6 +46,10 @@ def create_app():
         normalize_resource=S3Service.normalize_resource_name,
         safe_value=S3Service.safe_value,
     )
+    
+    from utils.datetime_utils import format_timestamp, calculate_duration
+    app.jinja_env.filters["datetime"] = format_timestamp
+    app.jinja_env.filters["duration"] = calculate_duration
 
     # ── Error handlers ─────────────────────────────────────────────
 

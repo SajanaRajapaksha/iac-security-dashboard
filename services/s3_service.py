@@ -5,6 +5,7 @@ This module is strictly read-only: no put_object, delete_object, or any write op
 """
 
 import ast
+import hashlib
 import json
 import logging
 import re
@@ -279,3 +280,30 @@ class S3Service:
         if isinstance(value, str) and value.strip() in ("", "NOT_AVAILABLE", "N/A"):
             return default
         return value
+
+    @staticmethod
+    def generate_finding_key(finding):
+        """Generate a deterministic, unique record key for a finding.
+
+        Uses scanner, finding_id, phase, and resource to ensure uniqueness,
+        as some scanners (like Checkov) report the same finding_id for multiple resources.
+
+        Args:
+            finding (dict): The finding dictionary.
+
+        Returns:
+            str: URL-safe unique hash.
+        """
+        scanner = str(finding.get("scanner", "")).strip()
+        finding_id = str(finding.get("finding_id", "")).strip()
+        phase = str(finding.get("phase", "")).strip()
+        
+        resource = str(
+            finding.get("full_address")
+            or finding.get("resource_name")
+            or ""
+        ).strip()
+        
+        raw_key = f"{scanner}|{finding_id}|{phase}|{resource}"
+        return hashlib.sha256(raw_key.encode("utf-8")).hexdigest()[:16]
+

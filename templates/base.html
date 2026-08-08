@@ -32,33 +32,9 @@
 
         <ul class="sidebar-nav">
             <li class="sidebar-nav-item">
-                <a href="{{ url_for('dashboard.index') }}" class="sidebar-nav-link {% if request.endpoint == 'dashboard.index' %}active{% endif %}">
+                <a href="{{ url_for('dashboard.index') }}" class="sidebar-nav-link active">
                     <i class="bi bi-grid-1x2-fill"></i>
                     <span>Dashboard</span>
-                </a>
-            </li>
-            <li class="sidebar-nav-item">
-                <a href="{{ url_for('scans.scan_history') }}" class="sidebar-nav-link {% if request.endpoint and 'scans.' in request.endpoint %}active{% endif %}">
-                    <i class="bi bi-search"></i>
-                    <span>Scans</span>
-                </a>
-            </li>
-            <li class="sidebar-nav-item">
-                <a href="#" class="sidebar-nav-link {% if request.endpoint and 'findings.' in request.endpoint %}active{% endif %}" id="nav-findings">
-                    <i class="bi bi-exclamation-triangle-fill"></i>
-                    <span>Findings</span>
-                </a>
-            </li>
-            <li class="sidebar-nav-item">
-                <a href="#" class="sidebar-nav-link" id="nav-risk">
-                    <i class="bi bi-graph-up-arrow"></i>
-                    <span>Risk Analysis</span>
-                </a>
-            </li>
-            <li class="sidebar-nav-item">
-                <a href="#" class="sidebar-nav-link {% if request.endpoint and 'evidence.' in request.endpoint %}active{% endif %}" id="nav-evidence">
-                    <i class="bi bi-file-earmark-lock2-fill"></i>
-                    <span>Evidence</span>
                 </a>
             </li>
         </ul>

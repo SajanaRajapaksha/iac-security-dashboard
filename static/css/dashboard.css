@@ -230,6 +230,21 @@ a:hover {
     flex: 1;
 }
 
+/* ── Utility Classes ──────────────────────────────────────────── */
+@media (min-width: 576px) {
+    .border-start-sm {
+        border-left: 1px solid var(--card-border) !important;
+    }
+}
+
+.fw-mono {
+    font-family: var(--font-mono);
+}
+
+.sticky-top {
+    z-index: 10;
+}
+
 /* ── Dashboard Cards ──────────────────────────────────────────── */
 .dashboard-card {
     background: var(--card-bg);
